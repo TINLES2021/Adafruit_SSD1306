@@ -76,25 +76,13 @@
 #define WIRE_WRITE wire->send ///< Wire write function in older Arduino lib
 #endif
 
-#ifdef HAVE_PORTREG
-#define SSD1306_SELECT *csPort &= ~csPinMask;       ///< Device select
-#define SSD1306_DESELECT *csPort |= csPinMask;      ///< Device deselect
-#define SSD1306_MODE_COMMAND *dcPort &= ~dcPinMask; ///< Command mode
-#define SSD1306_MODE_DATA *dcPort |= dcPinMask;     ///< Data mode
-#else
 #define SSD1306_SELECT digitalWrite(csPin, LOW);       ///< Device select
 #define SSD1306_DESELECT digitalWrite(csPin, HIGH);    ///< Device deselect
 #define SSD1306_MODE_COMMAND digitalWrite(dcPin, LOW); ///< Command mode
 #define SSD1306_MODE_DATA digitalWrite(dcPin, HIGH);   ///< Data mode
-#endif
 
-#if (ARDUINO >= 157) && !defined(ARDUINO_STM32_FEATHER)
-#define SETWIRECLOCK wire->setClock(wireClk)    ///< Set before I2C transfer
-#define RESWIRECLOCK wire->setClock(restoreClk) ///< Restore after I2C xfer
-#else // setClock() is not present in older Arduino Wire lib (or WICED)
 #define SETWIRECLOCK ///< Dummy stand-in define
 #define RESWIRECLOCK ///< keeps compiler happy
-#endif
 
 #if defined(SPI_HAS_TRANSACTION)
 #define SPI_TRANSACTION_START spi->beginTransaction(spiSettings) ///< Pre-SPI
@@ -491,12 +479,6 @@ bool Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, bool reset,
   } else { // Using one of the SPI modes, either soft or hardware
     pinMode(dcPin, OUTPUT); // Set data/command pin as output
     pinMode(csPin, OUTPUT); // Same for chip select
-#ifdef HAVE_PORTREG
-    dcPort = (PortReg *)portOutputRegister(digitalPinToPort(dcPin));
-    dcPinMask = digitalPinToBitMask(dcPin);
-    csPort = (PortReg *)portOutputRegister(digitalPinToPort(csPin));
-    csPinMask = digitalPinToBitMask(csPin);
-#endif
     SSD1306_DESELECT
     if (spi) { // Hardware SPI
       // SPI peripheral begin same as wire check above.
@@ -505,15 +487,7 @@ bool Adafruit_SSD1306::begin(uint8_t vcs, uint8_t addr, bool reset,
     } else {                    // Soft SPI
       pinMode(mosiPin, OUTPUT); // MOSI and SCLK outputs
       pinMode(clkPin, OUTPUT);
-#ifdef HAVE_PORTREG
-      mosiPort = (PortReg *)portOutputRegister(digitalPinToPort(mosiPin));
-      mosiPinMask = digitalPinToBitMask(mosiPin);
-      clkPort = (PortReg *)portOutputRegister(digitalPinToPort(clkPin));
-      clkPinMask = digitalPinToBitMask(clkPin);
-      *clkPort &= ~clkPinMask; // Clock low
-#else
       digitalWrite(clkPin, LOW); // Clock low
-#endif
     }
   }
 
